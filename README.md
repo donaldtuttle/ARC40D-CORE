@@ -87,11 +87,14 @@ A real adapter has to:
 - Keep the submitted request and the response text outside the record.
   The record stores hashes, not the next prompt or the stopping reason.
 
-Until that adapter exists, treat rc1 as a check of supplied configuration
-and of terminal form, not as proof of what a provider received.
+Until you write that adapter, a run only checks that the prompt, case, and
+declared settings agree, and that the returned text is one valid terminal
+line or a reported technical failure. It is not proof of what a provider
+received. The mock script never calls a model. No provider adapter ships
+in this repository.
 
-The current object is **frozen at release candidate 1**. The module hash
-below is the pin. This repository does not report an executed benchmark.
+The published example does not call a model. This repository is release
+candidate 1. The module hash below is the pin.
 
 ## Freeze pin
 
@@ -142,7 +145,7 @@ merely looks like a marker.
 | [`examples/mock_run.py`](examples/mock_run.py) | Runnable manifest, mock adapter, and both outcomes. Not part of the pin. |
 | [`conftest.py`](conftest.py) | Fixtures the in-module conformance tests require. Not part of the pin. |
 | [`docs/CONTROLLER.md`](docs/CONTROLLER.md) | Restatement of the controller contract. |
-| [`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md) | What rc1 checks, and which gaps are possible defect fixes versus new guarantees. |
+| [`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md) | What rc1 actually checks, and which limits are still open. |
 | [`release/HASHES.md`](release/HASHES.md) | SHA-256 pin and byte count. |
 | [`LICENSE`](LICENSE) | MIT |
 
@@ -163,39 +166,26 @@ SHA-256 of `p` and whose packet hash is SHA-256 of `t`, matching the
 strings those tests pass in. `sdk_versions` is empty so the suite does
 not depend on installed provider packages.
 
-## Freeze rule
+## Changing the pinned file
 
-After the module SHA-256 above:
+Change `arc40d_core.py` only to fix a failing conformance test, or to fix
+code that breaks a promise that file already makes. Either fix needs a new
+SHA-256, published in place of the pin above.
 
-Permitted changes to `arc40d_core.py`:
+Leave the file alone for renaming, formatting, or a new capability. Binding
+the declared model settings to the request a provider actually receives is
+a new version, not an edit of this one.
 
-- fix a conformance-test failure
-- fix a newly discovered hash-changing defect that breaks a claimed invariant
-
-Not sufficient:
-
-- naming preference
-- stylistic cleanup
-- refactoring without a demonstrated defect
-- convenience features
-- architectural experimentation
-
-Any intentional architectural change requires a new version and a new hash.
-A defect fix for an invariant the pinned module already claims is allowed,
-and it also requires a new hash. This README cannot turn that kind of defect
-into a deferred feature.
-
-## Claim boundary
-
-This repository publishes a standalone controller core. In rc1,
-`run_controller_call` checks supplied configuration consistency and records
-a syntactically valid controller decision, assuming a trusted adapter.
-`SUCCESS` is that technical and format result. It is not a judgment that
-`CONTINUE` or `STOP` was the correct decision.
-
-The docs describe that scope. They do not erase claims still present in
-`arc40d_core.py`. See
+If this README and `arc40d_core.py` disagree, the module wins. Open
+questions about that file are in
 [`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md).
+
+## What a successful record means
+
+`SUCCESS` means the adapter returned one well-formed terminal line and did
+not report a technical failure. It does not mean continuing or stopping was
+the right decision. The record does not store the next prompt or the
+stopping reason. Keep the response text yourself.
 
 ## License
 
