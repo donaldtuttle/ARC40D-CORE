@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arc40d-core"
+version = "1.0.0rc1"
+description = "ARC-40D controller-only core. Single-decision. Fail-closed invariants."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Donald Tuttle" }]
+keywords = ["arc", "reproducibility", "llm", "conformance"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools]
+py-modules = ["arc40d_core"]
+
+[tool.pytest.ini_options]
+python_files = ["arc40d_core.py"]
+addopts = "-q"
