@@ -52,19 +52,20 @@ classification section, not in this table.
 
 | Finding | What was rechecked | Implication |
 |---|---|---|
-| Manifest contents are mutable. | Replacing `manifest.instruction_hashes["DIRECT_POLICY"]` let a different prompt run. `manifest_sha256` stayed the same. | `frozen=True` blocks replacing the field. It does not block editing the dictionary. |
+| Manifest contents are mutable. | Replacing `manifest.instruction_hashes["DIRECT_POLICY"]` let a different prompt run. `manifest_sha256` stayed the same. | `frozen=True` stops field reassignment. It does not make the dictionaries deeply immutable. The open question is the module's frozen-manifest promise, not the decorator by itself. |
 | Provider identity is unchecked. | An adapter returning `provider="wrong-provider"` was `SUCCESS` when `requested_model` matched `spec.model_id`. | A reported provider mismatch is accepted. |
 | Runtime versions are compared, not established. | The same invented parser and runner strings on both the manifest and the runtime passed `validate_manifest`. | The check is agreement between supplied strings. It does not compare them with `PARSER_VERSION` or `RUNNER_VERSION`. |
 | Exceptions escape without a record. | An adapter raising `TimeoutError` produced no `CallRecord`. | Scoring stops. Structured failure accounting needs an outer harness. |
 | Attempt metadata is unvalidated. | `attempts=0` and an empty attempt log, with a valid terminal line, was `SUCCESS`. | A successful record can carry contradictory execution metadata. |
 | The adapter is not bound to `ModelSpec`. | `call_model` receives only the message list. | Hashing `ModelSpec` fixes the declared configuration. It does not prove the adapter used it. |
 | `request_sha256` is pre-adapter. | The adapter changed the system message after receipt. The record stayed `SUCCESS` and kept the hash of the original messages. | The core hashes the messages it hands over. It does not hash the request a provider received, and it does not include provider-specific settings. |
-| A missing package matches `""`. | `get_live_sdk_versions` returns `""` for a package that is not installed. A manifest that expected `""` passed. | Absence and a declared empty version are the same string. Production validation should distinguish them. |
+| A missing package matches `""`. | `get_live_sdk_versions` returns `""` when a package is not installed. A manifest that expected `""` passed. | The gap is only that case. A manifest that expects a real version already fails when the package is absent. |
 
-`manifest_sha256`, `lockfile_hash`, and `price_table_hash` are caller-supplied.
-The core already does not recompute `manifest_sha256`. That is an external
-responsibility, not a hidden defect: the caller needs a defined hash scope
-and a verification step outside this module.
+`manifest_sha256` is the clearest external responsibility. The field is
+stored, the runner never recomputes it, and this repository already said so.
+`lockfile_hash` and `price_table_hash` are likewise caller-supplied strings.
+A defined manifest-hash scope would still be a new version. It is not an
+undisclosed hole in rc1.
 
 ## Freeze rule
 
@@ -87,24 +88,26 @@ a claim that remains in `arc40d_core.py`.
 
 | Finding | Claim already in the pinned module | Class |
 |---|---|---|
-| Manifest dicts can be edited in place. | `ExperimentManifest` is frozen, and the runner says it validates a frozen manifest. `frozen=True` does not protect `instruction_hashes` or `case_packet_hashes`. | Possible defect fix. Not repaired in these bytes. |
-| A missing package is stored as `""`, and a manifest that expects `""` passes. | "Exact SDK environment," and versions read from the live environment. Absence is not an installed version. | Possible defect fix. Not repaired in these bytes. |
+| Manifest dicts can be edited in place. | The runner says it validates a frozen manifest. `dataclass(frozen=True)` only stops assignment to the field. Deep immutability is not what the decorator guarantees. | Possible defect fix, if the claim is the frozen-manifest promise. Not a defect in the decorator. Not repaired in these bytes. |
+| An absent package satisfies expected version `""`. | "Exact SDK environment." A missing package becomes `""`. | Possible defect fix for that one match. If the manifest expects a real version, a missing package already fails. Not repaired in these bytes. |
 | Parser and runner strings are not read from this module. | The runner comment says validate actual runtime. The signature takes a caller-built `RuntimeFingerprint`. Only SDK versions are read from the environment. | Unresolved. Do not file it as a new-version feature only because this note calls the check an agreement. |
-| `result.provider` is not compared with `spec.provider`. | The enforced source of truth is `requested_model`. A conformance test covers that mismatch and not provider. The declared provider is inside `model_specs_hash`. | New guarantee if required. |
-| An adapter exception produces no `CallRecord`. | Pre-call mismatches already raise. The suite expects those raises. | Not a broken invariant. A record for every adapter failure would be a new accounting guarantee. |
-| `attempts=0` with an empty log can still be `SUCCESS`. | `SUCCESS` is the technical flags plus one valid terminal line. | New guarantee if required. |
+| `result.provider` is not compared with `spec.provider`. | `requested_model` is the named source of truth, and a conformance test covers that mismatch. `validate_manifest` also says "any configuration mismatch." | Not explicitly guaranteed at the core boundary. The broader sentence leaves interpretive tension. Not conclusively outside every existing claim. |
+| An adapter exception produces no `CallRecord`. | Pre-call mismatches raise, and the suite expects those raises. The same "any configuration mismatch" sentence does not say every failure becomes a record. | Not explicitly guaranteed at the core boundary. Not conclusively settled as a non-guarantee. |
+| `attempts=0` with an empty log can still be `SUCCESS`. | `SUCCESS` is defined as the technical flags plus one valid terminal line. No separate attempt-consistency rule is stated. | Not explicitly guaranteed at the core boundary. |
 | `call_model` is not given `ModelSpec`, and `request_sha256` is the message list from before the adapter runs. | Execution controls must be bound into `model_specs_hash`. The hash is of the mapping supplied to the run. The "exact provider request" constructed here is the message list. | Versioned contract change. This is the v1.1 priority below. |
-| `manifest_sha256` is stored and never recomputed. | The field exists. No code claims to calculate it. | External responsibility. A defined hash scheme is a new version. |
+| `manifest_sha256` is stored and never recomputed. | Already documented. The field is stored. No code claims to calculate it. | External responsibility. Clearer than the open cases above. A defined hash scheme is still a new version. |
 
 ## v1.1 priority
 
-The highest-value addition is to bind the declared model configuration to
-the request the adapter actually submits.
+The strongest v1.1 objective is to bind the declared model configuration to
+the request the adapter actually submits. That connects configuration
+provenance to actual execution.
 
 rc1 hashes the `ModelSpec` it was given, then hands the adapter only
 messages. Temperature, token limit, reasoning effort, timeout, API mode, and
 any later mutation of those messages are outside the hash. Closing that gap
-is a new contract, not an in-place reading of rc1.
+is a new contract, not an in-place reading of rc1. The questions above stay
+recorded on the pinned candidate.
 
 ## What did hold
 
@@ -137,7 +140,14 @@ It does not patch `arc40d_core.py`. The pin remains
 It does not forbid a later fix, under the freeze rule, for a claim the
 pinned file already makes and does not keep. That fix would replace the pin.
 
-It does not make provider checks, attempt checks, exception records, or a
-submitted-request hash into rc1 behavior. The table classes those as new
-guarantees. Shallow manifest freeze, the empty SDK version, and the unread
-module constants are not in that group.
+It does not decide provider identity, attempt-log consistency, or exception
+accounting. Those are not explicitly guaranteed at the core boundary.
+"Any configuration mismatch" still leaves interpretive tension, so this note
+does not close them as non-guarantees.
+
+The manifest self-hash is different. Omission of a recomputed
+`manifest_sha256` is already documented, and it stays an external
+responsibility.
+
+Shallow freezing and the `""` SDK match stay possible defect fixes on the
+grounds above. rc1 remains pinned with those questions recorded.

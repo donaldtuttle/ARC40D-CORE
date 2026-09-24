@@ -35,16 +35,20 @@ The supplied `ModelSpec` must be the same object stored under
 must equal `spec.model_id`.
 
 These are not the same as proving a frozen experiment. The manifest
-dictionaries can still be edited in place. Parser and runner strings are
-not compared with this module’s constants. `result.provider` is not
-compared with `spec.provider`. `call_model` is given the messages only, not
-the `ModelSpec`. `request_sha256` is taken before the adapter runs.
-`manifest_sha256` is never recomputed. A missing package is reported as
-`""`, which matches a manifest that expected `""`.
+dictionaries can still be edited in place. That is a limit of deep
+immutability, not of `frozen=True`, which only stops field assignment.
+Parser and runner strings are not compared with this module's constants.
+`result.provider` is not compared with `spec.provider`. `call_model` is
+given the messages only, not the `ModelSpec`. `request_sha256` is taken
+before the adapter runs. `manifest_sha256` is never recomputed; that
+omission is documented. An absent package is reported as `""`, so it
+matches a manifest that expected `""`. A manifest that expects a real
+version already fails when the package is missing.
 
 The precise list is in [`ENFORCEMENT_BOUNDARY.md`](ENFORCEMENT_BOUNDARY.md).
-That note separates a broken existing claim from a new guarantee. It does
-not settle the unresolved cases by omission.
+That note separates a possible defect in an existing claim from a new
+guarantee, and it leaves the unsettled cases labeled as not explicitly
+guaranteed rather than closed.
 
 ## Terminal line
 
