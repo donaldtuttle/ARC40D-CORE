@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "arc40d-core"
 version = "1.0.0rc1"
-description = "ARC-40D controller-only core. Single-decision. Fail-closed invariants."
+description = "Standalone ARC-40D controller-only core. Single-decision. Fail-closed invariants."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"

@@ -1,7 +1,8 @@
 # ARC-40D controller contract
 
-This note restates what `arc40d_core.py` implements. It is not a second
-specification. If it disagrees with the module, the module wins.
+Standalone. This note restates what `arc40d_core.py` implements. It is not
+a second specification, and it does not depend on any other protocol. If it
+disagrees with the module, the module wins.
 
 ## What one run is
 

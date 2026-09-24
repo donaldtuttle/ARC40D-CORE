@@ -2,14 +2,19 @@
 
 ![Version: v1.0-rc1](https://img.shields.io/badge/version-v1.0--rc1-2563EB)
 ![Status: frozen](https://img.shields.io/badge/status-FROZEN-B45309)
+![Scope: standalone](https://img.shields.io/badge/scope-standalone-374151)
 ![Decisions: one](https://img.shields.io/badge/controller-single%20decision-0F766E)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6B7280)](LICENSE)
 
 > **One decision. Hash the request. Fail closed.**
 
-ARC40D-CORE is the controller-only runner for an ARC-40D experiment.
-It validates a frozen manifest, makes exactly one model call, and records
-either a terminal decision or an abort. It does not execute `NEXT_PROMPT`.
+ARC40D-CORE is a standalone controller-only runner. It validates a frozen
+manifest, makes exactly one model call, and records either a terminal
+decision or an abort. It does not execute `NEXT_PROMPT`.
+
+Nothing outside this repository is required to read, hash, or test the
+core. It does not depend on another protocol repo, skill pack, or theory
+stack. The frozen module is the whole controller.
 
 The current object is **frozen at release candidate 1**. The module hash
 below is the pin. This repository does not report an executed benchmark.
@@ -102,8 +107,8 @@ Any intentional architectural change requires a new version and a new hash.
 
 ## Claim boundary
 
-This repository publishes the controller core and its fail-closed checks.
-It does not establish that a model followed the instruction, that a
+This repository publishes a standalone controller core and its fail-closed
+checks. It does not establish that a model followed the instruction, that a
 benchmark was executed, or that a research claim was confirmed.
 
 ## License
