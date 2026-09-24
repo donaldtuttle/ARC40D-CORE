@@ -6,22 +6,92 @@
 ![Decisions: one](https://img.shields.io/badge/controller-single%20decision-0F766E)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6B7280)](LICENSE)
 
-> **One decision. Hash the messages this module hands off.**
+> **One decision. Do not score a cut-off reply as a stop.**
 
-ARC40D-CORE is a standalone controller-only runner. It compares the manifest
-it is given with the prompt, packet, model specs, and listed packages it can
-measure, invokes the adapter once, and records either a terminal decision or
-an abort. It does not execute `NEXT_PROMPT`.
+You are comparing how models decide whether to keep investigating or stop.
+A reply can be cut off after it has already produced a valid-looking stop
+marker. Scoring that marker as an intentional decision distorts the
+experiment.
 
-Nothing outside this repository is required to read, hash, or test the
-core. It does not depend on another protocol repo, skill pack, or theory
-stack. The frozen module is the whole controller.
+ARC40D-CORE keeps that from happening inside one controller call. It
+separates a reported technical failure from a valid terminal decision, and
+it checks that the prompt and case you pass in match the experiment you
+declared. It does not run the next prompt. It does not decide whether
+stopping was the right scientific call.
+
+It is standalone. Nothing outside this repository is required to read,
+hash, or test the core.
+
+rc1 checks agreement among values it is given. It catches a **reported**
+`requested_model` that does not match the declared model id. It cannot
+independently detect a model that was swapped silently: if the adapter
+reports the expected id, the core accepts it. The adapter's transport
+request is not proven here. See
+[`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md).
+
+## Try it without credentials
+
+[`examples/mock_run.py`](examples/mock_run.py) builds a manifest, calls the
+controller twice, and prints the decision and status. One adapter returns a
+finished stop. The other returns the same text and reports that generation
+was cut off.
+
+```bash
+PYTHONPATH=. python3 examples/mock_run.py
+```
+
+```text
+stop: status=SUCCESS decision=STOP run_end=DECISION_RECORDED
+truncated: status=TRUNCATED decision=None run_end=ABORTED
+```
+
+The truncated call is not a stop. The visible `CHAIN_COMPLETE` line is
+ignored because the adapter set `truncated=True`.
+
+The script constructs the manifest from the prompt and packet bytes, then
+inspects the record:
+
+```python
+record = run_controller_call(
+    manifest=manifest,
+    runtime=runtime,
+    case_id_internal="case-1",
+    packet_id=PACKET_ID,
+    packet_text=PACKET_TEXT,
+    condition=CONDITION,
+    system_prompt=SYSTEM_PROMPT,
+    spec=spec,
+    model_specs=model_specs,
+    call_model=call_model,
+)
+# record.call_status, record.decision, record.run_end
+```
+
+`manifest_sha256` in that example is a stored placeholder. rc1 does not
+recompute it.
+
+## What a real adapter must do
+
+`call_model` receives only the messages. The core does not apply
+`ModelSpec` and does not keep the response text.
+
+A real adapter has to:
+
+- Apply the declared settings itself: model id, provider, API mode,
+  temperature, max output tokens, reasoning effort, and timeout.
+- Report technical failure on the result: `truncated`, `refusal`, or
+  `error`. A valid-looking marker must not be left unmarked when the
+  generation did not finish.
+- Report `requested_model` as the id that was actually requested. rc1
+  rejects a reported mismatch. It cannot see a silent substitution.
+- Keep the submitted request and the response text outside the record.
+  The record stores hashes, not the next prompt or the stopping reason.
+
+Until that adapter exists, treat rc1 as a check of supplied configuration
+and of terminal form, not as proof of what a provider received.
 
 The current object is **frozen at release candidate 1**. The module hash
 below is the pin. This repository does not report an executed benchmark.
-rc1 checks agreement among values it is given. It does not, by itself, prove
-the adapter’s transport request. See
-[`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md).
 
 ## Freeze pin
 
@@ -69,6 +139,7 @@ merely looks like a marker.
 | Path | Role |
 |---|---|
 | [`arc40d_core.py`](arc40d_core.py) | Frozen module. Hash this. Do not restyle it. |
+| [`examples/mock_run.py`](examples/mock_run.py) | Runnable manifest, mock adapter, and both outcomes. Not part of the pin. |
 | [`conftest.py`](conftest.py) | Fixtures the in-module conformance tests require. Not part of the pin. |
 | [`docs/CONTROLLER.md`](docs/CONTROLLER.md) | Restatement of the controller contract. |
 | [`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md) | What rc1 checks, and which gaps are possible defect fixes versus new guarantees. |
