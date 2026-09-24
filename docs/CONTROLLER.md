@@ -6,8 +6,10 @@ disagrees with the module, the module wins.
 
 ## What one run is
 
-`run_controller_call` executes exactly one provider call and returns one
-`CallRecord`.
+`run_controller_call` invokes `call_model` once and, when that call returns,
+seals one `CallRecord`. An exception from the adapter is not caught and
+produces no record. Attempts inside the adapter are outside this single
+invocation.
 
 - `turn_index` is always `0`.
 - A valid `CONTINUE` (`NEXT_PROMPT`) does not execute the next prompt.
@@ -16,20 +18,32 @@ disagrees with the module, the module wins.
 - Any other technical outcome sets `run_end` to `ABORTED`.
 - `estimated_cost_usd` is always `None`. Cost belongs outside this module.
 
-## Fail closed, before the provider
+## Agreement checks before the adapter
 
 `validate_manifest` runs before `call_model`. It rejects the run when any
-of these differ from the frozen manifest:
+of these differ from the corresponding supplied value:
 
 - condition is unknown, or the system-prompt SHA-256 does not match
 - packet id is unknown, or the packet-text SHA-256 does not match
 - `parser_version`, `runner_version`, `lockfile_hash`, or `price_table_hash`
+  on the runtime fingerprint versus the same fields on the manifest
 - live `model_specs_hash`, or the runtime fingerprint's `model_specs_hash`
 - installed SDK versions versus `manifest.sdk_versions`
 
 The supplied `ModelSpec` must be the same object stored under
-`model_specs[spec.family]`. After the call, `result.requested_model` must
-equal `spec.model_id`.
+`model_specs[spec.family]`. After a normal return, `result.requested_model`
+must equal `spec.model_id`.
+
+These are not the same as proving a frozen experiment. The manifest
+dictionaries can still be edited in place. Parser and runner strings are
+not compared with this module’s constants. `result.provider` is not
+compared with `spec.provider`. `call_model` is given the messages only, not
+the `ModelSpec`. `request_sha256` is taken before the adapter runs.
+`manifest_sha256` is never recomputed. A missing package is reported as
+`""`, which matches a manifest that expected `""`.
+
+The precise list, and what would require a new version, is in
+[`ENFORCEMENT_BOUNDARY.md`](ENFORCEMENT_BOUNDARY.md).
 
 ## Terminal line
 

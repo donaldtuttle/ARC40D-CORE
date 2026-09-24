@@ -6,11 +6,12 @@
 ![Decisions: one](https://img.shields.io/badge/controller-single%20decision-0F766E)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6B7280)](LICENSE)
 
-> **One decision. Hash the request. Fail closed.**
+> **One decision. Hash the messages this module hands off.**
 
-ARC40D-CORE is a standalone controller-only runner. It validates a frozen
-manifest, makes exactly one model call, and records either a terminal
-decision or an abort. It does not execute `NEXT_PROMPT`.
+ARC40D-CORE is a standalone controller-only runner. It compares the manifest
+it is given with the prompt, packet, model specs, and listed packages it can
+measure, invokes the adapter once, and records either a terminal decision or
+an abort. It does not execute `NEXT_PROMPT`.
 
 Nothing outside this repository is required to read, hash, or test the
 core. It does not depend on another protocol repo, skill pack, or theory
@@ -18,6 +19,9 @@ stack. The frozen module is the whole controller.
 
 The current object is **frozen at release candidate 1**. The module hash
 below is the pin. This repository does not report an executed benchmark.
+rc1 checks agreement among values it is given. It does not, by itself, prove
+the adapter’s transport request. See
+[`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md).
 
 ## Freeze pin
 
@@ -44,7 +48,8 @@ The published file is 26657 bytes and has no trailing newline. See
 |---|---|---|
 | One valid terminal line | `SUCCESS` | `DECISION_RECORDED` |
 | Provider error, refusal, truncation, or bad output | not `SUCCESS` | `ABORTED` |
-| Manifest, SDK, model-spec, or requested-model mismatch | no record | exception before or after the call |
+| Manifest, model-spec, requested-model, or listed-SDK mismatch | no record | exception before or after the call |
+| Adapter exception (`TimeoutError` and anything else `call_model` raises) | no record | the exception propagates |
 
 A valid line is exactly one of:
 
@@ -66,6 +71,7 @@ merely looks like a marker.
 | [`arc40d_core.py`](arc40d_core.py) | Frozen module. Hash this. Do not restyle it. |
 | [`conftest.py`](conftest.py) | Fixtures the in-module conformance tests require. Not part of the pin. |
 | [`docs/CONTROLLER.md`](docs/CONTROLLER.md) | Restatement of the controller contract. |
+| [`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md) | What rc1 measures, what it only agrees, and what needs a new version. |
 | [`release/HASHES.md`](release/HASHES.md) | SHA-256 pin and byte count. |
 | [`LICENSE`](LICENSE) | MIT |
 
@@ -107,9 +113,14 @@ Any intentional architectural change requires a new version and a new hash.
 
 ## Claim boundary
 
-This repository publishes a standalone controller core and its fail-closed
-checks. It does not establish that a model followed the instruction, that a
+This repository publishes a standalone controller core. Its checks are
+fail-closed only for the bytes and declarations `run_controller_call`
+actually compares. They do not establish that a model followed the
+instruction, that the adapter sent the hashed messages unchanged, that a
 benchmark was executed, or that a research claim was confirmed.
+
+`SUCCESS` is a technical and format result. It is not a judgment that
+`CONTINUE` or `STOP` was the correct decision.
 
 ## License
 
