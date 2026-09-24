@@ -71,7 +71,7 @@ merely looks like a marker.
 | [`arc40d_core.py`](arc40d_core.py) | Frozen module. Hash this. Do not restyle it. |
 | [`conftest.py`](conftest.py) | Fixtures the in-module conformance tests require. Not part of the pin. |
 | [`docs/CONTROLLER.md`](docs/CONTROLLER.md) | Restatement of the controller contract. |
-| [`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md) | What rc1 measures, what it only agrees, and what needs a new version. |
+| [`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md) | What rc1 checks, and which gaps are possible defect fixes versus new guarantees. |
 | [`release/HASHES.md`](release/HASHES.md) | SHA-256 pin and byte count. |
 | [`LICENSE`](LICENSE) | MIT |
 
@@ -110,17 +110,21 @@ Not sufficient:
 - architectural experimentation
 
 Any intentional architectural change requires a new version and a new hash.
+A defect fix for an invariant the pinned module already claims is allowed,
+and it also requires a new hash. This README cannot turn that kind of defect
+into a deferred feature.
 
 ## Claim boundary
 
-This repository publishes a standalone controller core. Its checks are
-fail-closed only for the bytes and declarations `run_controller_call`
-actually compares. They do not establish that a model followed the
-instruction, that the adapter sent the hashed messages unchanged, that a
-benchmark was executed, or that a research claim was confirmed.
-
-`SUCCESS` is a technical and format result. It is not a judgment that
+This repository publishes a standalone controller core. In rc1,
+`run_controller_call` checks supplied configuration consistency and records
+a syntactically valid controller decision, assuming a trusted adapter.
+`SUCCESS` is that technical and format result. It is not a judgment that
 `CONTINUE` or `STOP` was the correct decision.
+
+The docs describe that scope. They do not erase claims still present in
+`arc40d_core.py`. See
+[`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md).
 
 ## License
 

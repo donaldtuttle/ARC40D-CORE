@@ -42,8 +42,9 @@ the `ModelSpec`. `request_sha256` is taken before the adapter runs.
 `manifest_sha256` is never recomputed. A missing package is reported as
 `""`, which matches a manifest that expected `""`.
 
-The precise list, and what would require a new version, is in
-[`ENFORCEMENT_BOUNDARY.md`](ENFORCEMENT_BOUNDARY.md).
+The precise list is in [`ENFORCEMENT_BOUNDARY.md`](ENFORCEMENT_BOUNDARY.md).
+That note separates a broken existing claim from a new guarantee. It does
+not settle the unresolved cases by omission.
 
 ## Terminal line
 

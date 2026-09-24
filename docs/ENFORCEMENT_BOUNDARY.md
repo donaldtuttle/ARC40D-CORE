@@ -4,13 +4,18 @@ Reviewed against commit `5a6a524`. Rechecked against the pinned file
 `arc40d_core.py` (`ARC40D_CORE_v1.0-rc1`, SHA-256
 `5212f2817f145997db35ca8e3852682c091572b9106ce0c3786e8598134b95e0`).
 
-The frozen module was not changed. No model benchmark was run. The probes
-below use a mock adapter.
+The pinned bytes stay. This note states what those bytes do. It does not
+withdraw a claim that is still written in the module. Describing a narrower
+scope does not turn a broken claim into a future feature.
 
 The supplied conformance suite is 9 tests, and those 9 passed. They do not
-cover the gaps in this note. rc1 stays a release candidate until the
-boundary below is either accepted as outside the core or moved into a new
-version.
+cover the gaps below. No model benchmark was run. The probes use a mock
+adapter.
+
+rc1, under this note, checks that supplied configuration values agree and
+records a syntactically valid controller decision. That scope assumes a
+trusted caller and a trusted adapter. It is useful and testable. The
+implementation limits below are still in the file.
 
 ## What “validated” means in rc1
 
@@ -37,13 +42,13 @@ Accepted as agreement between values the caller or adapter supplied:
   used by the adapter
 - the bytes the adapter submits to a provider
 
-That distinction is the limit on calling this runner reproducible or
-fail-closed. It fails closed when a measured value disagrees with the
-manifest. It does not fail closed on a declaration it never measures.
+That distinction is what rc1 establishes in practice. It is not a rewrite of
+the claims in the pinned module. Those claims are classified below.
 
 ## Confirmed gaps
 
-These behaviors are in the pinned core.
+These behaviors are in the pinned core. The class of each one is in the
+classification section, not in this table.
 
 | Finding | What was rechecked | Implication |
 |---|---|---|
@@ -60,6 +65,46 @@ These behaviors are in the pinned core.
 The core already does not recompute `manifest_sha256`. That is an external
 responsibility, not a hidden defect: the caller needs a defined hash scope
 and a verification step outside this module.
+
+## Freeze rule
+
+The module permits a change for a conformance-test failure, or for a
+hash-changing defect that breaks a claimed invariant. Any other architectural
+change needs a new version.
+
+Two different situations:
+
+| Situation | What the rule allows |
+|---|---|
+| An existing claim is violated | A defect fix is permitted. The module hash changes and must be recorded again. |
+| A responsibility that was outside the core becomes a core guarantee | A versioned contract change. Not an rc1 patch. |
+
+Writing this note is the first kind of documentation. It is not the second
+kind of permission. Narrower wording here does not reclassify a violation of
+a claim that remains in `arc40d_core.py`.
+
+## Classification
+
+| Finding | Claim already in the pinned module | Class |
+|---|---|---|
+| Manifest dicts can be edited in place. | `ExperimentManifest` is frozen, and the runner says it validates a frozen manifest. `frozen=True` does not protect `instruction_hashes` or `case_packet_hashes`. | Possible defect fix. Not repaired in these bytes. |
+| A missing package is stored as `""`, and a manifest that expects `""` passes. | "Exact SDK environment," and versions read from the live environment. Absence is not an installed version. | Possible defect fix. Not repaired in these bytes. |
+| Parser and runner strings are not read from this module. | The runner comment says validate actual runtime. The signature takes a caller-built `RuntimeFingerprint`. Only SDK versions are read from the environment. | Unresolved. Do not file it as a new-version feature only because this note calls the check an agreement. |
+| `result.provider` is not compared with `spec.provider`. | The enforced source of truth is `requested_model`. A conformance test covers that mismatch and not provider. The declared provider is inside `model_specs_hash`. | New guarantee if required. |
+| An adapter exception produces no `CallRecord`. | Pre-call mismatches already raise. The suite expects those raises. | Not a broken invariant. A record for every adapter failure would be a new accounting guarantee. |
+| `attempts=0` with an empty log can still be `SUCCESS`. | `SUCCESS` is the technical flags plus one valid terminal line. | New guarantee if required. |
+| `call_model` is not given `ModelSpec`, and `request_sha256` is the message list from before the adapter runs. | Execution controls must be bound into `model_specs_hash`. The hash is of the mapping supplied to the run. The "exact provider request" constructed here is the message list. | Versioned contract change. This is the v1.1 priority below. |
+| `manifest_sha256` is stored and never recomputed. | The field exists. No code claims to calculate it. | External responsibility. A defined hash scheme is a new version. |
+
+## v1.1 priority
+
+The highest-value addition is to bind the declared model configuration to
+the request the adapter actually submits.
+
+rc1 hashes the `ModelSpec` it was given, then hands the adapter only
+messages. Temperature, token limit, reasoning effort, timeout, API mode, and
+any later mutation of those messages are outside the hash. Closing that gap
+is a new contract, not an in-place reading of rc1.
 
 ## What did hold
 
@@ -84,18 +129,15 @@ stopping reason. `response_text_sha256` and `response_record_sha256` support
 verification only if that evidence is kept elsewhere. The record alone cannot
 be used to review the proposed next step.
 
-## What not to change in place
+## What this note does not do
 
-Do not edit the pinned module to close these gaps.
+It does not patch `arc40d_core.py`. The pin remains
+`5212f2817f145997db35ca8e3852682c091572b9106ce0c3786e8598134b95e0`.
 
-Immutable manifest contents, a provider-identity check, a comparison against
-the executing module’s version constants, and a required failure record are
-candidates for core guarantees. They are not guarantees of rc1.
+It does not forbid a later fix, under the freeze rule, for a claim the
+pinned file already makes and does not keep. That fix would replace the pin.
 
-A transport-request contract, or a defined manifest-hash procedure, is an
-architectural change. Under the freeze rule that is a new version and a new
-module hash.
-
-Until that version exists, treat rc1 as: one controller decision, with
-fail-closed checks on the bytes and declarations this function actually
-receives, assuming a trusted caller and a trusted adapter.
+It does not make provider checks, attempt checks, exception records, or a
+submitted-request hash into rc1 behavior. The table classes those as new
+guarantees. Shallow manifest freeze, the empty SDK version, and the unread
+module constants are not in that group.
