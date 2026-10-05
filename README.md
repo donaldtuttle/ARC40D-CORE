@@ -29,6 +29,24 @@ reports the expected id, the core accepts it. The adapter's transport
 request is not proven here. See
 [`docs/ENFORCEMENT_BOUNDARY.md`](docs/ENFORCEMENT_BOUNDARY.md).
 
+## What is this?
+
+A small controller for recording one AI decision to continue investigating or
+stop, while separating that decision from reported technical failures.
+
+## Why care?
+
+Imagine a reply contains a stop marker but the provider says generation was
+cut off. Counting it as a deliberate stop would corrupt your comparison.
+This controller records the reported truncation as an aborted call instead.
+
+## Try this
+
+Run `PYTHONPATH=. python3 examples/mock_run.py` from the repository root.
+Compare the finished and truncated cases: the same visible stop text leads to
+different statuses. The example uses mock replies and requires no credentials.
+
+
 ## Try it without credentials
 
 [`examples/mock_run.py`](examples/mock_run.py) builds a manifest, calls the
